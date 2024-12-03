@@ -3,12 +3,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const cors = require("cors"); // Import CORS
+const cors = require("cors"); 
 require("dotenv").config();
 const userSchema = require("./UserModel");
 const Tokenverify=require("./middleware/Tokenverify")
-
-// Initialize Express app
 const app = express();
 const PORT = 5000;
 
@@ -25,12 +23,9 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Create a User model
+
 const User = mongoose.model("User", userSchema);
 
-// Routes
-
-// Get all users
 app.get("/api/users", async (req, res) => {
   try {
     const users = await User.find();
@@ -44,7 +39,7 @@ app.get("/api/users", async (req, res) => {
 app.post("/api/users", async (req, res) => {
   const { name, email, password, access } = req.body;
 
-  // Validate required fields
+
   if (!name || !email || !password) {
     return res
       .status(400)
@@ -54,18 +49,16 @@ app.post("/api/users", async (req, res) => {
   try {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create a new user instance
     const newUser = new User({
       name,
       email,
-      password: hashedPassword, // Use the hashed password here
-      access: access || [], // Default to an empty array if no access roles are provided
+      password: hashedPassword,
+      access: access || [], 
     });
 
-    // Save the user to the database
+    
     await newUser.save();
-    res.status(201).json(newUser); // Respond with the created user
+    res.status(201).json(newUser); 
   } catch (err) {
     res.status(500).json({ error: "Failed to add user" });
   }
@@ -113,11 +106,12 @@ app.delete("/api/users/:id", async (req, res) => {
 
 
 // Login a user
+// Login a user
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find the user from the database using the 'email'
+
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -130,25 +124,25 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-// Generate JWT
-const token = jwt.sign(
-  {
-    id: user._id, // Include the user's MongoDB ID
-    username: user.name,
-    access: user.access,
-  },
-  process.env.JWT_SECRET,
-  {
-    expiresIn: "1h",
-  }
-);
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        id: user._id, 
+        username: user.name,
+        access: user.access,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
 
-    // Send the response with the token and access
     res.json({
       message: "Login successful",
       token,
-      access: user.access, // Send the access array to the frontend
-      username:user.name 
+      access: user.access, 
+      username: user.name,
+      isActive: user.isActive,
     });
   } catch (err) {
     console.error(err);
@@ -164,15 +158,36 @@ app.get('/access', Tokenverify, async (req, res) => {
 
   res.json({
     username: user.username,
-    access: user.access, // e.g., { "Data Export": true, "Data Import": false }
+    access: user.access, 
   });
 });
 
 
-// Admin dashboard route
-// router.get("/dashboard", verifyToken, verifyAdmin, (req, res) => {
-//   res.status(200).json({ message: "Welcome to the Admin Dashboard!" });
-// });
+
+app.put("/:userId/toggle-status", async (req, res) => {
+  const { userId } = req.params;
+  console.log('Received userId:', userId); 
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.status(200).json({
+      message: "User status updated successfully",
+      isActive: user.isActive,
+    });
+  } catch (error) {
+    console.error("Error toggling user status:", error);
+    res.status(500).json({ message: "Failed to update user status" });
+  }
+});
+
+
 
 // Start server
 app.listen(PORT, () => {

@@ -1,6 +1,4 @@
 const mongoose = require('mongoose');
-
-// Function to get the system's local date and time in 12-hour format
 const getFormattedLocalDateTime = () => {
   const date = new Date();
   return date.toLocaleString('en-GB', { hour12: true }).replace(',', '');
@@ -16,9 +14,9 @@ const userSchema = new mongoose.Schema({
    
   },
   access: [String],
-  lastActive: { type: String, default: getFormattedLocalDateTime }, // Save as string
-  dateAdded: { type: String, default: getFormattedLocalDateTime },  // Save as string
+  isActive: { type: Boolean, default: true },
+  lastActive: { type: String, default: getFormattedLocalDateTime }, 
+  dateAdded: { type: String, default: getFormattedLocalDateTime },  
 });
 
-// Export the schema so that it can be used to create the model
 module.exports = userSchema;
